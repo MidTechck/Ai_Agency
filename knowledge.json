@@ -1,0 +1,11 @@
+{
+    "store_name": "Zambia Tech Hub",
+    "contact": "+260 97XXXXXXX",
+    "location": "Kitwe, Freedom Avenue",
+    "products": [
+        {"name": "X-Tigi Tablet", "price": "K1,500", "stock": "5"},
+        {"name": "Power Bank", "price": "K350", "stock": "10"}
+    ],
+    "delivery": "K50 within Kitwe, K100 to Lusaka"
+}
+
