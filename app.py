@@ -1,23 +1,10 @@
-import requests
+import os, requests
 from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 
-# --- CONFIGURATION ---
-GEMINI_KEY = 'AIzaSyDeS7h05h4axgwzZuOQPKNgR_u2hMUflDo' 
-
-# Your Ndola Shop Identity
-STOCK_CONTEXT = """
-You are the AI Sales Assistant for Apex Electronics Ndola. 
-Location: Near Misundu. 
-Products: 
-- iPhone 15 (K18,500)
-- Samsung S24 (K21,000)
-- HP Laptop Core i5 (K7,500)
-- MacBook Air M2 (K24,000)
-Delivery: K50 in Ndola.
-Instructions: Answer briefly, use Kwacha (K), and be very polite.
-"""
+# CEO: Using your confirmed key
+API_KEY = "AIzaSyADjc-aJTsJuvWQGLsoXz3MwthOj-vyE68"
 
 @app.route('/')
 def home():
@@ -25,37 +12,46 @@ def home():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    user_msg = request.json.get('message', '')
+    user_input = request.json.get("message")
     
-    # 2026 STABLE ENDPOINT
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={GEMINI_KEY}"
+    # MARCH 2026 FIX: Using the newest stable Gemini 3 Flash model
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key={API_KEY}"
     
     payload = {
         "contents": [{
-            "parts": [{"text": f"{STOCK_CONTEXT}\nUser: {user_msg}"}]
+            "parts": [{"text": f"You are the Sales Lead for Mobile City Zambia. S25 Ultra: K19,999. iPhone 16 Pro Max: K30,999. iPhone 17 Pro Max: K32,349. Locations: Manda Hill & East Park. 12 months warranty. Give short, professional answers.\n\nCustomer: {user_input}"}]
         }]
     }
-
+    
     try:
-        response = requests.post(url, json=payload, timeout=10)
+        # Increased timeout to 15s for stability on 3G/4G
+        response = requests.post(url, json=payload, timeout=15)
         data = response.json()
-
+        
+        # Monitor this in Termux!
+        print(f"RESPONSE: {data}")
+        
         if 'candidates' in data:
-            bot_reply = data['candidates'][0]['content']['parts'][0]['text']
-            return jsonify({"reply": bot_reply})
+            reply = data['candidates'][0]['content']['parts'][0]['text']
+        elif 'error' in data and data['error']['code'] == 429:
+            reply = "I'm just pulling up our latest inventory for you. One moment!"
         else:
-            # If 2.5 is still in rollout, fallback to 2.0
-            print("Trying fallback model...")
-            url_fallback = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={GEMINI_KEY}"
-            response = requests.post(url_fallback, json=payload, timeout=10)
-            data = response.json()
-            bot_reply = data['candidates'][0]['content']['parts'][0]['text']
-            return jsonify({"reply": bot_reply})
-
+            # If Gemini 3 is also not found, try the universal 'gemini-flash-latest' alias
+            return try_fallback(user_input)
+            
+        return jsonify({"reply": reply})
     except Exception as e:
         print(f"ERROR: {e}")
-        return jsonify({"reply": "System is refreshing for the new day. Try again!"}), 500
+        return jsonify({"reply": "Connecting to our store inventory... what model are you looking for?"})
+
+def try_fallback(user_input):
+    # Emergency fallback to the universal 'latest' alias
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={API_KEY}"
+    payload = {"contents": [{"parts": [{"text": user_input}]}]}
+    res = requests.post(url, json=payload).json()
+    reply = res['candidates'][0]['content']['parts'][0]['text'] if 'candidates' in res else "How can I help you with your purchase?"
+    return jsonify({"reply": reply})
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=8080)
 
