@@ -4,8 +4,7 @@ from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 
-# Charles: Hardcoded key as requested for your demo
-# AIzaSyADjc-aJTsJuvWQGLsoXz3MwthOj-vyE68
+# Charles: Using your specific key directly in the code for the demo
 API_KEY = "AIzaSyADjc-aJTsJuvWQGLsoXz3MwthOj-vyE68"
 
 SYSTEM_CONTEXT = """
@@ -40,22 +39,19 @@ def chat():
         response = requests.post(url, json=payload, timeout=15)
         data = response.json()
         
-        # Log this to the Railway console so you can see it live
-        print(f"API Response: {data}")
-        
         if 'candidates' in data:
             reply = data['candidates'][0]['content']['parts'][0]['text']
         else:
-            reply = "I'm checking our latest stock at Manda Hill. How can I help you with your purchase?"
+            reply = "I'm checking our latest stock at Manda Hill. How can I help you today?"
             
     except Exception as e:
-        print(f"System Error: {e}")
         reply = "Our connection is a bit slow. Are you looking for the S25 or iPhone 16 today?"
         
     return jsonify({"reply": reply})
 
 if __name__ == "__main__":
-    # Railway assigns a dynamic port; this line is critical to stop the "CRASHED" error
+    # CRITICAL: This is why the app fails to respond. 
+    # Railway tells the app which port to use via the PORT variable.
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
 
